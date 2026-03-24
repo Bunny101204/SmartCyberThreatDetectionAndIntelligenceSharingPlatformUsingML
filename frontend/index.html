@@ -291,19 +291,6 @@
             loadFirewallUpdates();
         }, 2000);
 
-        // Auth functions
-        let token = localStorage.getItem('token');
-        let currentNodeId = localStorage.getItem('node_id');
-
-        if (token) {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('register-section').style.display = 'none';
-            document.getElementById('main-app').style.display = 'block';
-            loadOrgInfo();
-            loadGroups();
-            loadFirewallUpdates();
-        }
-
         async function login() {
             const org = document.getElementById('login-org').value;
             const nodeType = document.getElementById('login-node-type').value;
