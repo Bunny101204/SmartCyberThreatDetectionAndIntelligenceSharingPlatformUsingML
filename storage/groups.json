@@ -1,0 +1,154 @@
+{
+    "GroupA": {
+        "members": [
+            "ORG-A-SOC-1",
+            "ORG-A-ENDPOINT-1"
+        ],
+        "pending_requests": [],
+        "shared_threats": [
+            {
+                "ip": "192.168.0.2",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T13:46:53.578722",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.168",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T13:46:55.831776",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.31",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T13:47:15.545168",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.165",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T13:47:45.558487",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.13",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T13:47:47.566640",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.56",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:56:41.300838",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.222",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:58:56.973939",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.212",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:59:08.970701",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.172",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:59:16.017521",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.179",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:59:32.036995",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.200",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:59:35.973954",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.166",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:59:38.976378",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.44",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T14:59:43.975530",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.243",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T15:00:23.001091",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.43",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T15:02:28.673423",
+                "source_org": "ORG"
+            },
+            {
+                "ip": "192.168.0.183",
+                "threat_type": "attack",
+                "severity": "High",
+                "timestamp": "2026-03-24T15:03:44.659945",
+                "source_org": "ORG"
+            }
+        ]
+    },
+    "GroupB": {
+        "members": [
+            "ORG-B-SOC-1",
+            "ORG-B-ENDPOINT-1"
+        ],
+        "pending_requests": [],
+        "shared_threats": []
+    },
+    "bunny": {
+        "members": [
+            "ORG-A-SOC-1"
+        ],
+        "pending_requests": [
+            null
+        ],
+        "shared_threats": []
+    },
+    "": {
+        "members": [
+            "ORG-A-SOC-1"
+        ],
+        "pending_requests": [],
+        "shared_threats": []
+    },
+    "aadarsh": {
+        "members": [
+            "ORG-A-SOC-1"
+        ],
+        "pending_requests": [],
+        "shared_threats": []
+    }
+}

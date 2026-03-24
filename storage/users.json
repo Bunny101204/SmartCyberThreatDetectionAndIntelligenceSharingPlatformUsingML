@@ -1,0 +1,4 @@
+{
+  "ORG-A": ["SOC-1", "ENDPOINT-1", "SENSOR-1"],
+  "ORG-B": ["SOC-1", "ENDPOINT-1", "SENSOR-1"]
+}
