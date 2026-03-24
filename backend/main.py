@@ -51,25 +51,11 @@ if not os.path.exists(THREATS_FILE):
 
 if not os.path.exists(GROUPS_FILE):
     with open(GROUPS_FILE, 'w') as f:
-        json.dump({
-            "GroupA": {"members": ["ORG-A-SOC-1", "ORG-A-ENDPOINT-1"], "pending_requests": [], "shared_threats": []},
-            "GroupB": {"members": ["ORG-B-SOC-1", "ORG-B-ENDPOINT-1"], "pending_requests": [], "shared_threats": []}
-        }, f, indent=4)
+        json.dump({}, f)
 
 if not os.path.exists(USERS_FILE):
     with open(USERS_FILE, 'w') as f:
-        json.dump({
-            "ORG-A": {
-                "SOC-1": {"password": bcrypt.hashpw("password".encode(), bcrypt.gensalt()).decode()},
-                "ENDPOINT-1": {"password": bcrypt.hashpw("password".encode(), bcrypt.gensalt()).decode()},
-                "SENSOR-1": {"password": bcrypt.hashpw("password".encode(), bcrypt.gensalt()).decode()}
-            },
-            "ORG-B": {
-                "SOC-1": {"password": bcrypt.hashpw("password".encode(), bcrypt.gensalt()).decode()},
-                "ENDPOINT-1": {"password": bcrypt.hashpw("password".encode(), bcrypt.gensalt()).decode()},
-                "SENSOR-1": {"password": bcrypt.hashpw("password".encode(), bcrypt.gensalt()).decode()}
-            }
-        }, f, indent=4)
+        json.dump({}, f)
 
 if not os.path.exists(FIREWALL_FILE):
     with open(FIREWALL_FILE, 'w') as f:
@@ -109,32 +95,33 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
 @app.post("/register")
 def register(data: dict):
     org = data.get("org")
-    node_type = data.get("node_type")
+    node_name = data.get("node_name")
     password = data.get("password")
-    if not org or not node_type or not password:
+    if not org or not node_name or not password:
         raise HTTPException(status_code=400, detail="Missing fields")
     users = load_users()
     if org not in users:
         users[org] = {}
-    if node_type in users[org]:
+    if node_name in users[org]:
         raise HTTPException(status_code=400, detail="User already exists")
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    users[org][node_type] = {"password": hashed}
+    users[org][node_name] = {"password": hashed}
     save_users(users)
     return {"message": "Registered successfully"}
 
 @app.post("/login")
 def login(data: dict):
     org = data.get("org")
-    node_type = data.get("node_type")
+    node_name = data.get("node_name")
     password = data.get("password")
     users = load_users()
-    if org not in users or node_type not in users[org]:
+    if org not in users or node_name not in users[org]:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not bcrypt.checkpw(password.encode(), users[org][node_type]["password"].encode()):
+    if not bcrypt.checkpw(password.encode(), users[org][node_name]["password"].encode()):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = jwt.encode({"node_id": f"{org}-{node_type}"}, SECRET_KEY, algorithm="HS256")
-    return {"token": token, "node_id": f"{org}-{node_type}"}
+    node_id = f"{org}:{node_name}"
+    token = jwt.encode({"node_id": node_id}, SECRET_KEY, algorithm="HS256")
+    return {"token": token, "node_id": node_id}
 
 def load_firewall():
     with open(FIREWALL_FILE, 'r') as f:
@@ -245,37 +232,53 @@ def detect_threat(data: dict, node_id: str = Depends(verify_token)):
         threat = {**prediction, "id": threat_id, "node_id": node_id}
         threats.append(threat)
         save_threats(threats)
-        # Auto-share
-        auto_share_threat(threat, node_id)
+        # Auto-share to groups
+        groups = load_groups()
+        for group_name, group_data in groups.items():
+            if node_id in group_data["members"]:
+                group_data["shared_threats"].append(threat)
+                save_groups(groups)
         # Auto-block high-severity
         auto_block_ip(threat, node_id)
     return prediction
 
 @app.get("/threats")
-def get_threats():
-    return load_threats()
+def get_threats(node_id: str = Depends(verify_token)):
+    threats = load_threats()
+    groups = load_groups()
+    shared_threat_ids = set()
+    for group_data in groups.values():
+        if node_id in group_data["members"]:
+            for threat in group_data["shared_threats"]:
+                shared_threat_ids.add(threat["id"])
+    user_threats = [t for t in threats if t["node_id"] == node_id or t["id"] in shared_threat_ids]
+    return user_threats
 
 @app.post("/create-group")
 def create_group(data: dict, node_id: str = Depends(verify_token)):
     group_name = data.get("group_name")
+    org = node_id.split(':')[0]
+    full_group_name = f"{org}:{group_name}"
     groups = load_groups()
-    if group_name in groups:
+    if full_group_name in groups:
         raise HTTPException(status_code=400, detail="Group already exists")
-    groups[group_name] = {"members": [node_id], "pending_requests": [], "shared_threats": []}
+    groups[full_group_name] = {"members": [node_id], "pending_requests": [], "shared_threats": []}
     save_groups(groups)
     return {"message": f"Group {group_name} created"}
 
 @app.post("/request-join")
 def request_join(data: dict, node_id: str = Depends(verify_token)):
     group_name = data.get("group_name")
+    org = node_id.split(':')[0]
+    full_group_name = f"{org}:{group_name}"
     groups = load_groups()
-    if group_name not in groups:
+    if full_group_name not in groups:
         raise HTTPException(status_code=404, detail="Group not found")
-    if node_id in groups[group_name]["members"]:
+    if node_id in groups[full_group_name]["members"]:
         raise HTTPException(status_code=400, detail="Already a member")
-    if node_id in groups[group_name]["pending_requests"]:
+    if node_id in groups[full_group_name]["pending_requests"]:
         raise HTTPException(status_code=400, detail="Request already pending")
-    groups[group_name]["pending_requests"].append(node_id)
+    groups[full_group_name]["pending_requests"].append(node_id)
     save_groups(groups)
     return {"message": "Join request sent"}
 
@@ -283,28 +286,35 @@ def request_join(data: dict, node_id: str = Depends(verify_token)):
 def approve_request(data: dict, node_id: str = Depends(verify_token)):
     group_name = data.get("group_name")
     target_node = data.get("node_id")
+    org = node_id.split(':')[0]
+    full_group_name = f"{org}:{group_name}"
     groups = load_groups()
-    if group_name not in groups:
+    if full_group_name not in groups:
         raise HTTPException(status_code=404, detail="Group not found")
-    if node_id not in groups[group_name]["members"]:
+    if node_id not in groups[full_group_name]["members"]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    if target_node not in groups[group_name]["pending_requests"]:
+    if target_node not in groups[full_group_name]["pending_requests"]:
         raise HTTPException(status_code=400, detail="No pending request")
-    groups[group_name]["pending_requests"].remove(target_node)
-    groups[group_name]["members"].append(target_node)
+    groups[full_group_name]["pending_requests"].remove(target_node)
+    groups[full_group_name]["members"].append(target_node)
     save_groups(groups)
     return {"message": f"{target_node} added to {group_name}"}
 
 @app.get("/groups")
 def get_groups(node_id: str = Depends(verify_token)):
-    return load_groups()
+    org = node_id.split(':')[0]
+    all_groups = load_groups()
+    return {k: v for k, v in all_groups.items() if k.startswith(f"{org}:")}
 
-@app.get("/group/{group_id}")
-def get_group_threats(group_id: str, node_id: str = Depends(verify_token)):
+@app.get("/shared-threats")
+def get_shared_threats(node_id: str = Depends(verify_token)):
+    org = node_id.split(':')[0]
     groups = load_groups()
-    if group_id not in groups:
-        raise HTTPException(status_code=404, detail="Group not found")
-    return groups[group_id]["shared_threats"]
+    shared = []
+    for group_name, group_data in groups.items():
+        if group_name.startswith(f"{org}:") and node_id in group_data["members"]:
+            shared.extend(group_data["shared_threats"])
+    return shared
 
 @app.get("/firewall-updates")
 def get_firewall_updates(node_id: str = Depends(verify_token)):
