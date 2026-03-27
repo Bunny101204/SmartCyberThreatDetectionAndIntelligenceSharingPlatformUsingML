@@ -138,11 +138,15 @@ def register(data: dict):
         raise HTTPException(status_code=400, detail="User already exists")
     
     # Save user with plain text password (demo mode)
+    # First registered user in an organization becomes admin
+    is_admin = not any(u.get("organization") == organization for u in users.values() if isinstance(u, dict))
+    
     users[node_id] = {
         "organization": organization,
         "node_type": node_type,
         "node_name": node_name,
-        "password": password
+        "password": password,
+        "role": "admin" if is_admin else "user"
     }
     save_users(users)
     
@@ -177,8 +181,16 @@ def login(data: dict):
     if users[node_id]["password"] != password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Return success with node_id (no JWT token needed)
-    return {"message": "Login successful", "node_id": node_id, "token": "dummy"}
+    user_data = users[node_id]
+    
+    # Return success with node_id, role, and organization
+    return {
+        "message": "Login successful",
+        "node_id": node_id,
+        "role": user_data.get("role", "user"),
+        "organization": user_data.get("organization"),
+        "token": "dummy"
+    }
 
 def load_firewall():
     with open(FIREWALL_FILE, 'r') as f:
@@ -195,9 +207,11 @@ def auto_block_ip(threat, node_id):
         firewall = load_firewall()
         block_entry = {
             "ip": threat["src_ip"],
-            "reason": f"High-severity attack: {threat.get('attack_type', 'Unknown')}",
+            "action": "BLOCKED",
+            "reason": f"High severity threat: {threat.get('attack_type', 'Unknown')}",
             "timestamp": datetime.now().isoformat(),
-            "node_id": node_id
+            "node_id": node_id,
+            "threat_type": threat.get("attack_type", "Unknown")
         }
         firewall.append(block_entry)
         save_firewall(firewall)
@@ -271,6 +285,87 @@ def generate_traffic():
         "dst_host_rerror_rate": random.uniform(0,1),
         "dst_host_srv_rerror_rate": random.uniform(0,1)
     }
+
+@app.get("/stats")
+def get_stats(node_id: str = Header(None, alias="node-id")):
+    threats = load_threats()
+    groups = load_groups()
+    users = load_users()
+    firewall = load_firewall()
+
+    # Calculate stats
+    total_threats = len(threats)
+    high_severity = len([t for t in threats if t.get("prediction") == "Attack"])
+    active_nodes = len(users)
+    shared_intelligence = sum(len(group_data.get("shared_threats", [])) for group_data in groups.values())
+
+    return {
+        "total_threats": total_threats,
+        "high_severity": high_severity,
+        "active_nodes": active_nodes,
+        "shared_intelligence": shared_intelligence
+    }
+
+@app.get("/ml-models")
+def get_ml_models():
+    # Mock accuracy data (in real implementation, this would be calculated from test data)
+    return {
+        "models": [
+            {"name": "Random Forest", "accuracy": 0.987},
+            {"name": "XGBoost", "accuracy": 0.984},
+            {"name": "SVM", "accuracy": 0.976},
+            {"name": "Decision Tree", "accuracy": 0.973}
+        ]
+    }
+
+@app.get("/organizations")
+def get_organizations(node_id: str = Header(None, alias="node-id")):
+    """Get organizations based on visibility rules"""
+    users = load_users()
+    groups = load_groups()
+    
+    # Check if user is admin - if so, show all organizations
+    if node_id in users and users[node_id].get("role") == "admin":
+        organizations = {}
+        for user_id, user_data in users.items():
+            if isinstance(user_data, dict) and "organization" in user_data:
+                org = user_data.get("organization", "Unknown")
+                if org not in organizations:
+                    organizations[org] = []
+                organizations[org].append({
+                    "node_id": user_id,
+                    "node_name": user_data.get("node_name", "Unknown"),
+                    "node_type": user_data.get("node_type", "Unknown")
+                })
+        return {"organizations": organizations}
+    
+    # For regular users, only show organizations in their groups
+    visible_organizations = set()
+    
+    if node_id in users:
+        # Find all groups this user belongs to
+        for group_name, group_data in groups.items():
+            if node_id in group_data.get("members", []):
+                # Add all organizations of members in this group
+                for member_id in group_data.get("members", []):
+                    if member_id in users and isinstance(users[member_id], dict):
+                        visible_organizations.add(users[member_id].get("organization", "Unknown"))
+    
+    # Build organizations dict with only visible orgs
+    organizations = {}
+    for user_id, user_data in users.items():
+        if isinstance(user_data, dict) and "organization" in user_data:
+            org = user_data.get("organization", "Unknown")
+            if org in visible_organizations:
+                if org not in organizations:
+                    organizations[org] = []
+                organizations[org].append({
+                    "node_id": user_id,
+                    "node_name": user_data.get("node_name", "Unknown"),
+                    "node_type": user_data.get("node_type", "Unknown")
+                })
+    
+    return {"organizations": organizations}
 
 @app.get("/generate_traffic")
 def endpoint_generate_traffic():
@@ -385,6 +480,139 @@ def get_firewall_updates(node_id: str = Header(None, alias="node-id")):
 @app.get("/users")
 def get_users(node_id: str = Header(None, alias="node-id")):
     return load_users()
+
+# ============================================================
+# ADMIN ENDPOINTS
+# ============================================================
+
+@app.get("/admin/stats")
+def admin_stats(node_id: str = Header(None, alias="node-id")):
+    """Get system-wide statistics for admin panel"""
+    users = load_users()
+    groups = load_groups()
+    threats = load_threats()
+    
+    # Verify admin access
+    if node_id not in users or users[node_id].get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Extract statistics
+    total_orgs = len(set(u.get("organization") for u in users.values() if isinstance(u, dict) and "organization" in u))
+    total_users = len([u for u in users.values() if isinstance(u, dict) and "organization" in u])
+    total_groups = len(groups)
+    total_threats = len(threats)
+    high_severity_threats = len([t for t in threats if t.get("prediction") == "Attack"])
+    
+    return {
+        "total_organizations": total_orgs,
+        "total_users": total_users,
+        "total_groups": total_groups,
+        "total_threats": total_threats,
+        "high_severity_threats": high_severity_threats
+    }
+
+@app.get("/admin/users")
+def admin_users(node_id: str = Header(None, alias="node-id")):
+    """Get all users for admin panel"""
+    users = load_users()
+    
+    if node_id not in users or users[node_id].get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Return only valid user objects
+    user_list = []
+    for uid, user_data in users.items():
+        if isinstance(user_data, dict) and "organization" in user_data:
+            user_list.append({
+                "node_id": uid,
+                "organization": user_data.get("organization"),
+                "node_name": user_data.get("node_name"),
+                "node_type": user_data.get("node_type"),
+                "role": user_data.get("role", "user")
+            })
+    
+    return {"users": user_list}
+
+@app.get("/admin/groups")
+def admin_groups(node_id: str = Header(None, alias="node-id")):
+    """Get all groups for admin panel"""
+    users = load_users()
+    groups = load_groups()
+    
+    if node_id not in users or users[node_id].get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    group_list = []
+    for group_name, group_data in groups.items():
+        group_list.append({
+            "name": group_name,
+            "member_count": len(group_data.get("members", [])),
+            "pending_requests": len(group_data.get("pending_requests", [])),
+            "shared_threats": len(group_data.get("shared_threats", []))
+        })
+    
+    return {"groups": group_list}
+
+@app.get("/admin/threats")
+def admin_threats(node_id: str = Header(None, alias="node-id")):
+    """Get all threats across system for admin panel"""
+    users = load_users()
+    threats = load_threats()
+    
+    if node_id not in users or users[node_id].get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Limit to last 100 threats
+    return threats[-100:]
+
+@app.post("/admin/approve-request")
+def admin_approve_request(data: dict, node_id: str = Header(None, alias="node-id")):
+    """Admin approve group join requests"""
+    users = load_users()
+    groups = load_groups()
+    
+    if node_id not in users or users[node_id].get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    group_name = data.get("group_name", "").strip()
+    requester_id = data.get("requester_id", "").strip()
+    
+    if group_name not in groups:
+        raise HTTPException(status_code=400, detail="Group not found")
+    
+    group = groups[group_name]
+    if requester_id not in group.get("pending_requests", []):
+        raise HTTPException(status_code=400, detail="No pending request from this user")
+    
+    group["pending_requests"].remove(requester_id)
+    group["members"].append(requester_id)
+    save_groups(groups)
+    
+    return {"message": f"Approved {requester_id} to join {group_name}"}
+
+@app.post("/admin/reject-request")
+def admin_reject_request(data: dict, node_id: str = Header(None, alias="node-id")):
+    """Admin reject group join requests"""
+    users = load_users()
+    groups = load_groups()
+    
+    if node_id not in users or users[node_id].get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    group_name = data.get("group_name", "").strip()
+    requester_id = data.get("requester_id", "").strip()
+    
+    if group_name not in groups:
+        raise HTTPException(status_code=400, detail="Group not found")
+    
+    group = groups[group_name]
+    if requester_id not in group.get("pending_requests", []):
+        raise HTTPException(status_code=400, detail="No pending request from this user")
+    
+    group["pending_requests"].remove(requester_id)
+    save_groups(groups)
+    
+    return {"message": f"Rejected {requester_id}'s request to join {group_name}"}
 
 # Placeholder for MISP integration
 def integrate_misp(threat):

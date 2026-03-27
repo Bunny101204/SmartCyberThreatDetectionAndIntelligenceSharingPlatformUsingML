@@ -3,186 +3,712 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Cyber Threat Intelligence Platform</title>
+    <title>Smart Cyber Threat Detection and Intelligence Sharing Platform</title>
     <style>
         :root {
-            --bg: #eef3f9;
+            --bg: #f8f9fa;
             --surface: #ffffff;
             --primary: #0d6efd;
             --primary-dark: #0056b3;
             --secondary: #6c757d;
             --danger: #dc3545;
             --success: #198754;
-            --shadow: rgba(15, 23, 42, 0.08);
+            --warning: #ffc107;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --sidebar-width: 250px;
         }
 
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #1a1a1a; }
-        h1 { text-align: center; margin-bottom: 18px; color: #0f1e3d; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: #333; }
 
-        #toast-container { position: fixed; top: 18px; right: 18px; z-index: 999; width: 300px; }
-        .toast { margin-bottom: 10px; padding: 12px 14px; border-radius: 8px; color: white; font-weight: 600; box-shadow: 0 2px 15px var(--shadow); opacity: 0.95; }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.info { background: var(--primary); }
+        /* Header */
+        .header { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 1000; box-shadow: 0 2px 4px var(--shadow); }
+        .header h1 { font-size: 1.2rem; }
+        .header .user-info { display: flex; align-items: center; gap: 10px; }
+        .header button { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
 
-        .grid-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-        .panel { background: var(--surface); border-radius: 10px; padding: 18px; box-shadow: 0 5px 18px var(--shadow); }
-        .header { background: var(--primary); color: white; padding: 12px; border-radius: 8px 8px 0 0; margin: -18px -18px 18px -18px; font-size: 1rem; }
-        .form-group { margin: 10px 0; }
-        input, select, button { width: 100%; padding: 9px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.95rem; }
-        button { width: auto; color: #fff; font-weight: 700; border: none; transition: background 0.2s ease, opacity 0.2s; cursor: pointer; pointer-events: auto; }
-        button:hover { filter: brightness(0.92); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-        button.primary { background: var(--primary); }
-        button.primary:hover { background: var(--primary-dark); }
-        button.secondary { background: var(--secondary); }
-        button.danger { background: var(--danger); }
+        /* Sidebar */
+        .sidebar { position: fixed; top: 60px; left: 0; width: var(--sidebar-width); height: calc(100vh - 60px); background: var(--surface); box-shadow: 2px 0 4px var(--shadow); overflow-y: auto; transition: transform 0.3s; }
+        .sidebar.collapsed { transform: translateX(-100%); }
+        .sidebar ul { list-style: none; padding: 20px 0; }
+        .sidebar li { margin: 10px 0; }
+        .sidebar a { display: block; padding: 10px 20px; color: #333; text-decoration: none; border-left: 4px solid transparent; transition: background 0.2s; }
+        .sidebar a:hover, .sidebar a.active { background: var(--bg); border-left-color: var(--primary); }
 
-        .traffic-log { min-height: 200px; max-height: 280px; overflow-y: auto; background: #fefefe; padding: 10px; border-radius: 6px; border: 1px solid #d1d5db; }
-        .threat { padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 0.9rem; }
-        .attack { background: #fff3f3; color: #b62121; border-left: 4px solid #b62121; }
-        .normal { background: #f2fbf4; color: #1c7e3c; border-left: 4px solid #1c7e3c; }
-        .suspicious { background: #fff9eb; color: #e38400; border-left: 4px solid #e38400; }
-        .card { margin: 9px 0; padding: 10px 11px; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+        /* Main Content */
+        .main-content { margin-left: var(--sidebar-width); margin-top: 60px; padding: 20px; transition: margin-left 0.3s; }
+        .main-content.expanded { margin-left: 0; }
 
-        #main-app { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; margin-top: 8px; height: calc(100vh - 130px); overflow-y: auto; }
-        #main-app > .panel { max-height: none; overflow: visible; }
-        .panel .panel-content { margin-top: 8px; max-height: 280px; overflow-y: auto; }
+        /* Cards */
+        .card { background: var(--surface); border-radius: 8px; box-shadow: 0 2px 8px var(--shadow); padding: 20px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .card .content { max-height: 300px; overflow-y: auto; }
 
-        .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        /* Color Coding */
+        .attack { color: var(--danger); }
+        .warning { color: var(--warning); }
+        .normal { color: var(--success); }
 
-        @media (max-width: 1100px) {
-            #main-app { grid-template-columns: 1fr; height: auto; }
-            .panel .panel-content { max-height: 220px; }
+        /* Badges */
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .badge.high { background: var(--danger); color: white; }
+        .badge.low { background: var(--success); color: white; }
+
+        /* Buttons */
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        button.primary { background: var(--primary); color: white; }
+        button.secondary { background: var(--secondary); color: white; }
+        button.danger { background: var(--danger); color: white; }
+
+        /* Traffic Log */
+        .traffic-log { background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; }
+            .header { padding: 0 10px; }
+            .header h1 { font-size: 1rem; }
         }
-        @media (max-width: 700px) {
-            body { padding: 10px; }
-            h1 { font-size: 1.2rem; }
-            input, select, button { font-size: 0.88rem; }
-            .panel { padding: 14px; }
-            .panel .panel-content { max-height: 180px; }
+
+        /* Section Navigation */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Sidebar active state */
+        .sidebar a.active {
+            background: var(--primary);
+            color: white;
+            border-left-color: var(--primary-dark);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Model List */
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+
+        .model-name {
+            font-weight: 600;
+        }
+
+        .model-accuracy {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        /* Organization Network */
+        .org-network {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .org-item {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .org-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .org-nodes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .node-item {
+            background: var(--bg);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        /* Threat Filters */
+        .threat-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--primary);
+            background: white;
+            color: var(--primary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Enhanced Threats List */
+        .threats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .threat-item {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            background: white;
+        }
+
+        .threat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .threat-title {
+            font-weight: bold;
+        }
+
+        .threat-badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .threat-details {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .threat-details.expanded {
+            display: block;
+        }
+
+        .threat-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .threat-detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .threat-detail-value {
+            color: #333;
+        }
+
+        /* Firewall List */
+        .firewall-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .firewall-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 6px;
+            border-left: 4px solid var(--danger);
+        }
+
+        .firewall-info {
+            flex: 1;
+        }
+
+        .firewall-ip {
+            font-weight: bold;
+            color: var(--danger);
+        }
+
+        .firewall-reason {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .firewall-timestamp {
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-indicator.offline {
+            color: var(--secondary);
+        }
+
+        .status-indicator.online {
+            color: var(--success);
+        }
+
+        .status-indicator.monitoring {
+            color: var(--warning);
+        }
+
+        /* Form Groups */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Improved Traffic Stream Styling */
+        .traffic-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #444;
+        }
+
+        .traffic-entry {
+            margin-bottom: 8px;
+            padding: 6px;
+            border-radius: 2px;
+        }
+
+        .traffic-entry.normal {
+            color: #4ec9b0;
+            background: rgba(78, 201, 176, 0.1);
+        }
+
+        .traffic-entry.attack {
+            color: #f48771;
+            background: rgba(244, 135, 113, 0.1);
+        }
+
+        .traffic-entry.suspicious {
+            color: #dcdcaa;
+            background: rgba(220, 220, 170, 0.15);
+        }
+
+        /* Admin Panel Styles */
+        .admin-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .admin-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .admin-item-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .admin-item-details {
+            font-size: 0.9rem;
+            color: #666;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+        }
+
+        .admin-threats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .admin-threat-item {
+            border-left: 4px solid var(--danger);
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 2px;
+            font-size: 0.9rem;
+        }
+
+        /* Badge for admin display */
+        .role-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: var(--primary);
+            color: white;
+        }
+
+        .role-badge.user {
+            background: var(--secondary);
         }
     </style>
 </head>
 <body>
-    <h1>Enterprise Cyber Threat Intelligence Platform</h1>
-
-    <div id="login-section" style="display: block;">
-        <div class="panel">
-            <div class="header">Login</div>
-            <div class="form-group">
-                <label>Organization:</label>
-                <input type="text" id="login-org" placeholder="e.g., CyberCorp">
-            </div>
-            <div class="form-group">
-                <label>Node Name:</label>
-                <input type="text" id="login-node-name" placeholder="e.g., SOC-1">
-            </div>
-            <div class="form-group">
-                <label>Password:</label>
-                <input type="password" id="login-password">
-            </div>
-            <button class="primary" onclick="login()">Login</button>
-            <button class="secondary" onclick="showRegister()">Register</button>
+    <!-- Header -->
+    <header class="header">
+        <button onclick="toggleSidebar()" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">☰</button>
+        <h1>Smart Cyber Threat Detection and Intelligence Sharing Platform</h1>
+        <div class="user-info">
+            <span id="logged-user">Not logged in</span>
+            <button onclick="logout()">Logout</button>
         </div>
-    </div>
+    </header>
 
-    <div id="register-section" style="display: none;">
-        <div class="panel">
-            <div class="header">Register</div>
-            <div class="form-group">
-                <label>Organization Name:</label>
-                <input type="text" id="reg-org" placeholder="e.g., CyberCorp">
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="#" onclick="showSection('dashboard-section')">Dashboard</a></li>
+            <li><a href="#" onclick="showSection('threat-section')">Threat Alerts</a></li>
+            <li><a href="#" onclick="showSection('group-section')">Group Management</a></li>
+            <li><a href="#" onclick="showSection('intel-section')">Shared Intelligence</a></li>
+            <li><a href="#" onclick="showSection('notification-section')">Notifications</a></li>
+            <li id="admin-nav-item" style="display: none;"><a href="#" onclick="showSection('admin-section')">Admin Panel</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+        <div id="login-section" style="display: block;">
+            <div class="card">
+                <h3>Login</h3>
+                <div class="form-group">
+                    <label>Organization:</label>
+                    <input type="text" id="login-org" placeholder="e.g., CyberCorp">
+                </div>
+                <div class="form-group">
+                    <label>Node Name:</label>
+                    <input type="text" id="login-node-name" placeholder="e.g., SOC-1">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="login-password">
+                </div>
+                <button class="primary" onclick="login()">Login</button>
+                <button class="secondary" onclick="showRegister()">Register</button>
             </div>
-            <div class="form-group">
-                <label>Node Type:</label>
-                <input type="text" id="reg-node-type" placeholder="e.g., SOC">
-            </div>
-            <div class="form-group">
-                <label>Node Name:</label>
-                <input type="text" id="reg-node-name" placeholder="e.g., SOC-1">
-            </div>
-            <div class="form-group">
-                <label>Password:</label>
-                <input type="password" id="reg-password">
-            </div>
-            <button class="primary" onclick="register()">Register</button>
-            <button class="secondary" onclick="showLogin()">Back to Login</button>
         </div>
-    </div>
+
+        <div id="register-section" style="display: none;">
+            <div class="card">
+                <h3>Register</h3>
+                <div class="form-group">
+                    <label>Organization Name:</label>
+                    <input type="text" id="reg-org" placeholder="e.g., CyberCorp">
+                </div>
+                <div class="form-group">
+                    <label>Node Type:</label>
+                    <input type="text" id="reg-node-type" placeholder="e.g., SOC">
+                </div>
+                <div class="form-group">
+                    <label>Node Name:</label>
+                    <input type="text" id="reg-node-name" placeholder="e.g., SOC-1">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="reg-password">
+                </div>
+                <button class="primary" onclick="register()">Register</button>
+                <button class="secondary" onclick="showLogin()">Back to Login</button>
+            </div>
+        </div>
+
+        <div id="main-app" style="display: none;">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="section active">
+                <!-- Node Configuration -->
+                <div class="card">
+                    <h3>Node Configuration</h3>
+                    <div class="content">
+                        <div class="form-group">
+                            <label>Organization:</label>
+                            <input type="text" id="org" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Node Type:</label>
+                            <input type="text" id="node-type" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Status:</label>
+                            <span id="node-status" class="status-indicator offline">● Offline</span>
+                        </div>
+                        <button class="primary" onclick="startDetection()">Start Monitoring</button>
+                        <button class="secondary" onclick="stopDetection()">Stop</button>
+                    </div>
+                </div>
+
+                <!-- Global Stats Panel -->
+                <div class="card">
+                    <h3>Global Statistics</h3>
+                    <div class="content">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-number" id="total-threats">0</div>
+                                <div class="stat-label">Total Threats</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="high-severity">0</div>
+                                <div class="stat-label">High Severity</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="active-nodes">0</div>
+                                <div class="stat-label">Active Nodes</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="shared-intel">0</div>
+                                <div class="stat-label">Shared Intelligence</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ML Model Accuracy Panel -->
+                <div class="card">
+                    <h3>ML Model Performance</h3>
+                    <div class="content">
+                        <div class="model-list" id="model-list">
+                            <!-- Models will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Organization Info -->
+                <div class="card">
+                    <h3>Organization Information</h3>
+                    <div class="content" id="org-info">Select an organization to view details.</div>
+                </div>
+
+                <!-- Organization Network -->
+                <div class="card">
+                    <h3>Organization Network</h3>
+                    <div class="content">
+                        <div class="org-network" id="org-network">
+                            <!-- Organizations will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Traffic Stream -->
+                <div class="card">
+                    <h3>Live Traffic Monitor</h3>
+                    <div class="content">
+                        <div class="traffic-log" id="traffic-log"></div>
+                    </div>
+                </div>
+
+                <!-- Firewall Actions Panel -->
+                <div class="card">
+                    <h3>Firewall Actions</h3>
+                    <div class="content">
+                        <div class="firewall-list" id="firewall-list">
+                            <!-- Firewall blocks will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threat Alerts Section -->
+            <div id="threat-section" class="section">
+                <div class="card">
+                    <h3>Threat Alerts</h3>
+                    <div class="content">
+                        <div class="threat-filters">
+                            <button class="filter-btn active" onclick="filterThreats('all')">All</button>
+                            <button class="filter-btn" onclick="filterThreats('high')">High Priority</button>
+                            <button class="filter-btn" onclick="filterThreats('medium')">Medium Priority</button>
+                            <button class="filter-btn" onclick="filterThreats('low')">Low Priority</button>
+                        </div>
+                        <div class="threats-list" id="threats-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Management Section -->
+            <div id="group-section" class="section">
+                <div class="card">
+                    <h3>Group Membership</h3>
+                    <div class="content">
+                        <div class="form-group">
+                            <input type="text" id="group-name" placeholder="Group Name">
+                            <button class="primary" onclick="createGroup()">Create Group</button>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="join-group" placeholder="Group to Join">
+                            <button class="primary" onclick="requestJoin()">Request Join</button>
+                        </div>
+                        <div id="groups-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shared Intelligence Section -->
+            <div id="intel-section" class="section">
+                <div class="card">
+                    <h3>Shared Intelligence Feed</h3>
+                    <div class="content" id="shared-feed"></div>
+                </div>
+            </div>
+
+            <!-- Notifications Section -->
+            <div id="notification-section" class="section">
+                <div class="card">
+                    <h3>Notifications</h3>
+                    <div class="content" id="notification-panel">
+                        <div><strong>Pending Join Requests</strong></div>
+                        <div id="join-notifications">No pending join requests.</div>
+                        <div style="margin-top:12px"><strong>Shared Threat Alerts</strong></div>
+                        <div id="shared-alerts">No shared threat alerts.</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Firewall Updates</h3>
+                    <div class="content" id="firewall-updates"></div>
+                </div>
+            </div>
+
+            <!-- Admin Panel Section -->
+            <div id="admin-section" class="section">
+                <div class="card">
+                    <h3>System Dashboard</h3>
+                    <div class="content">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-number" id="admin-orgs">0</div>
+                                <div class="stat-label">Organizations</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="admin-users">0</div>
+                                <div class="stat-label">Total Users</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="admin-groups">0</div>
+                                <div class="stat-label">Groups</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="admin-threats">0</div>
+                                <div class="stat-label">Total Threats</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number" id="admin-high-threats">0</div>
+                                <div class="stat-label">High Severity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>All Users</h3>
+                    <div class="content">
+                        <div class="admin-list" id="admin-users-list">
+                            <!-- Users will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>All Groups</h3>
+                    <div class="content">
+                        <div class="admin-list" id="admin-groups-list">
+                            <!-- Groups will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>System Threats</h3>
+                    <div class="content">
+                        <div class="admin-threats-list" id="admin-threats-list">
+                            <!-- Threats will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <div id="toast-container"></div>
-    <div id="main-app" style="display: none;">
-        <div class="panel">
-            <div class="header">Node Configuration - Logged in as: <span id="logged-user"></span></div>
-            <div class="form-group">
-                <label>Organization:</label>
-                <input type="text" id="org" readonly>
-            </div>
-            <div class="form-group">
-                <label>Node Type:</label>
-                <input type="text" id="node-type" readonly>
-            </div>
-            <button class="primary" onclick="startDetection()">Start Monitoring</button>
-            <button class="secondary" onclick="stopDetection()">Stop</button>
-        </div>
-
-        <div class="panel">
-            <div class="header">Organization Info</div>
-            <div id="org-info">Select an organization to view details.</div>
-        </div>
-
-        <div class="panel">
-            <div class="header">Live Network Traffic</div>
-            <div class="traffic-log" id="traffic-log"></div>
-        </div>
-
-        <div class="panel">
-            <div class="header">Threat Alerts</div>
-            <div id="threats-list"></div>
-        </div>
-
-        <div class="panel">
-            <div class="header">Group Membership</div>
-            <div class="form-group">
-                <input type="text" id="group-name" placeholder="Group Name">
-                <button class="primary" onclick="createGroup()">Create Group</button>
-            </div>
-            <div class="form-group">
-                <input type="text" id="join-group" placeholder="Group to Join">
-                <button class="primary" onclick="requestJoin()">Request Join</button>
-            </div>
-            <div id="groups-list"></div>
-        </div>
-
-        <div class="panel">
-            <div class="header">Notifications</div>
-            <div id="notification-panel">
-                <div><strong>Pending Join Requests</strong></div>
-                <div id="join-notifications">No pending join requests.</div>
-                <div style="margin-top:12px"><strong>Shared Threat Alerts</strong></div>
-                <div id="shared-alerts">No shared threat alerts.</div>
-            </div>
-        </div>
-
-        <div class="panel">
-            <div class="header">Shared Intelligence Feed</div>
-            <div id="shared-feed"></div>
-        </div>
-
-        <div class="panel">
-            <div class="header">Firewall Updates</div>
-            <div id="firewall-updates"></div>
-        </div>
-    </div>
-    </div>
 
     <script>
         let interval;
         let currentGroup;
         let token = localStorage.getItem('token');
         let currentNodeId = localStorage.getItem('node_id');
+        let userRole = localStorage.getItem('user_role') || 'user';
 
         function showToast(type, message) {
             const container = document.getElementById('toast-container');
@@ -193,26 +719,73 @@
             setTimeout(() => {
                 toast.style.opacity = 0;
                 setTimeout(() => toast.remove(), 400);
-            }, 2200);
+            }, 3000);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('node_id');
+            localStorage.removeItem('user_role');
+            location.reload();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+
+            // Show the selected section
+            document.getElementById(sectionId).classList.add('active');
+
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Load admin data if admin section
+            if (sectionId === 'admin-section' && userRole === 'admin') {
+                loadAdminDashboard();
+            }
         }
 
         if (token) {
+            // Show admin nav if user is admin
+            if (userRole === 'admin') {
+                document.getElementById('admin-nav-item').style.display = 'block';
+            }
+            
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('register-section').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
+            document.getElementById('logged-user').textContent = `${currentNodeId} (${userRole})`;
+            updateNodeStatus('online');
             loadOrgInfo();
             loadGroups();
             loadFirewallUpdates();
+            loadGlobalStats();
+            loadMLModels();
+            loadOrganizationNetwork();
+            loadFirewallActions();
         }
 
-        function getNodeId() {
-            return currentNodeId;
-        }
+        // ... existing functions ...
 
         function startDetection() {
+            updateNodeStatus('monitoring');
             loadOrgInfo();
             loadGroups();
             loadFirewallUpdates();
+            loadGlobalStats();
+            loadMLModels();
+            loadOrganizationNetwork();
+            loadFirewallActions();
             interval = setInterval(async () => {
                 const traffic = await fetch('/generate_traffic', {
                     headers: { 'node-id': currentNodeId }
@@ -224,24 +797,38 @@
                     body: JSON.stringify(traffic)
                 }).then(r => r.json());
 
-                // Log traffic
+                // Log traffic with improved formatting
                 const log = document.getElementById('traffic-log');
-                log.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${traffic.src_ip} -> ${traffic.dst_ip} (${traffic.protocol})</div>`;
-                log.scrollTop = log.scrollHeight;
+                const timestamp = new Date().toLocaleTimeString();
+                const status = result.prediction === 'Attack' ? 'ATTACK' : 'NORMAL';
+                const entryClass = result.prediction === 'Attack' ? 'attack' : 'normal';
+                
+                const traffic_entry = document.createElement('div');
+                traffic_entry.className = `traffic-entry ${entryClass}`;
+                traffic_entry.textContent = `[${timestamp}] ${traffic.src_ip} → ${traffic.dst_ip} | ${traffic.protocol.toUpperCase()} | ${status}`;
+                log.insertBefore(traffic_entry, log.firstChild);
+                
+                // Limit to last 50 entries
+                while (log.children.length > 50) {
+                    log.removeChild(log.lastChild);
+                }
 
-                // Add to threats if attack
+                // Add to threats if attack with enhanced display
                 if (result.prediction === 'Attack') {
                     const threats = document.getElementById('threats-list');
-                    const div = document.createElement('div');
-                    div.className = 'threat attack alert';
-                    div.innerHTML = `🚨 ${result.src_ip} -> ${result.dst_ip} | ${result.attack_type} | High Severity`;
-                    threats.appendChild(div);
+                    const threatData = {
+                        ...result,
+                        timestamp: Date.now(),
+                        auto_shared: Math.random() > 0.7 // Simulate auto-sharing
+                    };
+                    threats.innerHTML = createThreatElement(threatData) + threats.innerHTML;
                 }
             }, 2000);
         }
 
         function stopDetection() {
             clearInterval(interval);
+            updateNodeStatus('online');
         }
 
         async function loadOrgInfo() {
@@ -417,7 +1004,8 @@
                     return;
                 }
                 feed.forEach(item => {
-                    div.innerHTML += `<div class="card threat attack">🔴 IOC: ${item.ip} | ${item.threat_type} | ${item.severity} | From ${item.source_org}</div>`;
+                    const severityClass = item.severity === 'High' ? 'high' : 'low';
+                    div.innerHTML += `<div class="card threat attack">🔴 IOC: ${item.ip} | ${item.threat_type} | <span class="badge ${severityClass}">${item.severity}</span> | From ${item.source_org} <small>${new Date().toLocaleTimeString()}</small></div>`;
                 });
             } catch (e) {
                 console.error('Failed to load shared feed', e);
@@ -464,14 +1052,14 @@
                     return;
                 }
                 updates.forEach(update => {
-                    div.innerHTML += `<div class="card threat attack">🚫 Blocked: ${update.ip} | ${update.reason} | ${update.node_id}</div>`;
+                    div.innerHTML += `<div class="card threat attack">🚫 Blocked: ${update.ip} | ${update.reason} | ${update.node_id} <small>${new Date().toLocaleTimeString()}</small></div>`;
                 });
             } catch (e) {
                 console.error('Failed to load firewall updates', e);
             }
         }
 
-        // Auto-refresh groups, shared feed, shared threat notifications, and firewall updates
+        // Auto-refresh groups, shared feed, shared threat notifications, firewall updates, and new stats
         setInterval(() => {
             loadGroups();
             if (currentGroup) {
@@ -479,6 +1067,8 @@
             }
             loadSharedThreatNotifications();
             loadFirewallUpdates();
+            loadGlobalStats();
+            loadFirewallActions();
         }, 2000);
 
         async function login() {
@@ -487,12 +1077,12 @@
             const password = document.getElementById('login-password').value;
 
             if (!org || !nodeName) {
-                alert('Organization and Node Name are required');
+                showToast('error', 'Organization and Node Name are required');
                 return;
             }
 
             if (!password) {
-                alert('Password is required');
+                showToast('error', 'Password is required');
                 return;
             }
 
@@ -509,12 +1099,20 @@
                     const data = await response.json();
                     localStorage.setItem('token', 'dummy'); // dummy token
                     localStorage.setItem('node_id', data.node_id);
+                    localStorage.setItem('user_role', data.role || 'user');
                     token = 'dummy';
                     currentNodeId = data.node_id;
+                    userRole = data.role || 'user';
+                    
+                    // Show admin nav if user is admin
+                    if (userRole === 'admin') {
+                        document.getElementById('admin-nav-item').style.display = 'block';
+                    }
+                    
                     document.getElementById('login-section').style.display = 'none';
                     document.getElementById('register-section').style.display = 'none';
                     document.getElementById('main-app').style.display = 'block';
-                    document.getElementById('logged-user').textContent = data.node_id;
+                    document.getElementById('logged-user').textContent = `${data.node_id} (${userRole})`;
                     loadOrgInfo();
                     loadGroups();
                     loadFirewallUpdates();
@@ -536,12 +1134,12 @@
             const password = document.getElementById('reg-password').value;
             
             if (!org || !nodeType || !nodeName) {
-                alert('All fields are required');
+                showToast('error', 'All fields are required');
                 return;
             }
             
             if (!password) {
-                alert('Password is required');
+                showToast('error', 'Password is required');
                 return;
             }
             
@@ -577,6 +1175,262 @@
         function showLogin() {
             document.getElementById('register-section').style.display = 'none';
             document.getElementById('login-section').style.display = 'block';
+        }
+
+        // Load global stats
+        async function loadGlobalStats() {
+            try {
+                const response = await fetch('/stats', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const stats = await response.json();
+
+                document.getElementById('total-threats').textContent = stats.total_threats;
+                document.getElementById('high-severity').textContent = stats.high_severity;
+                document.getElementById('active-nodes').textContent = stats.active_nodes;
+                document.getElementById('shared-intel').textContent = stats.shared_intelligence;
+            } catch (e) {
+                console.error('Failed to load global stats', e);
+            }
+        }
+
+        // Load ML model accuracies
+        async function loadMLModels() {
+            try {
+                const response = await fetch('/ml-models');
+                const data = await response.json();
+                const container = document.getElementById('model-list');
+
+                container.innerHTML = data.models.map(model => `
+                    <div class="model-item">
+                        <span class="model-name">${model.name}</span>
+                        <span class="model-accuracy">${(model.accuracy * 100).toFixed(1)}%</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load ML models', e);
+                document.getElementById('model-list').innerHTML = '<div>Failed to load model data</div>';
+            }
+        }
+
+        // Load organization network
+        async function loadOrganizationNetwork() {
+            try {
+                const response = await fetch('/organizations', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const data = await response.json();
+                const container = document.getElementById('org-network');
+
+                container.innerHTML = Object.entries(data.organizations).map(([org, nodes]) => `
+                    <div class="org-item">
+                        <div class="org-name">${org}</div>
+                        <div class="org-nodes">
+                            ${nodes.map(node => `<span class="node-item">${node.node_name} (${node.node_type})</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load organization network', e);
+                document.getElementById('org-network').innerHTML = '<div>Failed to load organization network</div>';
+            }
+        }
+
+        // Filter threats
+        function filterThreats(priority) {
+            const items = document.querySelectorAll('.threat-item');
+            const buttons = document.querySelectorAll('.filter-btn');
+
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            items.forEach(item => {
+                const severity = item.dataset.severity;
+                if (priority === 'all' || severity === priority) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Enhanced threat display with expandable details
+        function createThreatElement(threat) {
+            const severity = threat.prediction === 'Attack' ? 'high' : 'low';
+            const autoShared = threat.auto_shared ? '[Auto-Shared] ' : '';
+
+            return `
+                <div class="threat-item" data-severity="${severity.toLowerCase()}">
+                    <div class="threat-header">
+                        <span class="threat-title">${autoShared}🚨 ${threat.src_ip} → ${threat.dst_ip}</span>
+                        <div class="threat-badges">
+                            <span class="badge ${severity.toLowerCase()}">${severity.toUpperCase()}</span>
+                            <button onclick="toggleThreatDetails(this)" class="secondary" style="font-size: 0.8rem; padding: 2px 6px;">Details</button>
+                        </div>
+                    </div>
+                    <div class="threat-details">
+                        <div class="threat-detail-row">
+                            <span class="threat-detail-label">Attack Type:</span>
+                            <span class="threat-detail-value">${threat.attack_type || 'Unknown'}</span>
+                        </div>
+                        <div class="threat-detail-row">
+                            <span class="threat-detail-label">Protocol:</span>
+                            <span class="threat-detail-value">${threat.protocol_type || 'Unknown'}</span>
+                        </div>
+                        <div class="threat-detail-row">
+                            <span class="threat-detail-label">Service:</span>
+                            <span class="threat-detail-value">${threat.service || 'Unknown'}</span>
+                        </div>
+                        <div class="threat-detail-row">
+                            <span class="threat-detail-label">Timestamp:</span>
+                            <span class="threat-detail-value">${new Date(threat.timestamp || Date.now()).toLocaleString()}</span>
+                        </div>
+                        ${threat.source_node ? `<div class="threat-detail-row">
+                            <span class="threat-detail-label">Source Node:</span>
+                            <span class="threat-detail-value">${threat.source_node}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleThreatDetails(button) {
+            const details = button.closest('.threat-item').querySelector('.threat-details');
+            details.classList.toggle('expanded');
+            button.textContent = details.classList.contains('expanded') ? 'Hide' : 'Details';
+        }
+
+        // Load firewall actions
+        async function loadFirewallActions() {
+            try {
+                const response = await fetch('/firewall-updates', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const updates = await response.json();
+                const container = document.getElementById('firewall-list');
+
+                container.innerHTML = updates.slice(-10).reverse().map(update => `
+                    <div class="firewall-item">
+                        <div class="firewall-info">
+                            <div class="firewall-ip">${update.ip}</div>
+                            <div class="firewall-reason">${update.reason}</div>
+                            <div class="firewall-timestamp">${new Date(update.timestamp).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load firewall actions', e);
+                document.getElementById('firewall-list').innerHTML = '<div>Failed to load firewall actions</div>';
+            }
+        }
+
+        // Update node status
+        function updateNodeStatus(status) {
+            const indicator = document.getElementById('node-status');
+            indicator.className = `status-indicator ${status}`;
+            indicator.innerHTML = `● ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+        }
+
+        // ============================================================
+        // ADMIN FUNCTIONS
+        // ============================================================
+
+        async function loadAdminDashboard() {
+            if (userRole !== 'admin') {
+                showToast('error', 'Admin access required');
+                return;
+            }
+            
+            loadAdminStats();
+            loadAdminUsers();
+            loadAdminGroups();
+            loadAdminThreats();
+        }
+
+        async function loadAdminStats() {
+            try {
+                const response = await fetch('/admin/stats', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const stats = await response.json();
+                
+                document.getElementById('admin-orgs').textContent = stats.total_organizations;
+                document.getElementById('admin-users').textContent = stats.total_users;
+                document.getElementById('admin-groups').textContent = stats.total_groups;
+                document.getElementById('admin-threats').textContent = stats.total_threats;
+                document.getElementById('admin-high-threats').textContent = stats.high_severity_threats;
+            } catch (e) {
+                console.error('Failed to load admin stats', e);
+            }
+        }
+
+        async function loadAdminUsers() {
+            try {
+                const response = await fetch('/admin/users', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const data = await response.json();
+                const container = document.getElementById('admin-users-list');
+                
+                container.innerHTML = data.users.map(user => `
+                    <div class="admin-item">
+                        <div class="admin-item-title">${user.node_id}</div>
+                        <div class="admin-item-details">
+                            <div>Org: ${user.organization}</div>
+                            <div>Type: ${user.node_type}</div>
+                            <span class="role-badge ${user.role}">${user.role.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load admin users', e);
+                document.getElementById('admin-users-list').innerHTML = 'Failed to load users';
+            }
+        }
+
+        async function loadAdminGroups() {
+            try {
+                const response = await fetch('/admin/groups', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const data = await response.json();
+                const container = document.getElementById('admin-groups-list');
+                
+                container.innerHTML = data.groups.map(group => `
+                    <div class="admin-item">
+                        <div class="admin-item-title">${group.name}</div>
+                        <div class="admin-item-details">
+                            <div>Members: ${group.member_count}</div>
+                            <div>Pending: ${group.pending_requests}</div>
+                            <div>Threats Shared: ${group.shared_threats}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load admin groups', e);
+                document.getElementById('admin-groups-list').innerHTML = 'Failed to load groups';
+            }
+        }
+
+        async function loadAdminThreats() {
+            try {
+                const response = await fetch('/admin/threats', {
+                    headers: { 'node-id': currentNodeId }
+                });
+                const threats = await response.json();
+                const container = document.getElementById('admin-threats-list');
+                
+                // Show last 20 threats
+                container.innerHTML = threats.slice(-20).reverse().map(threat => `
+                    <div class="admin-threat-item">
+                        <strong>${threat.src_ip} → ${threat.dst_ip}</strong><br/>
+                        Type: ${threat.attack_type || 'Unknown'} | Status: ${threat.prediction} | Node: ${threat.node_id}
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load admin threats', e);
+                document.getElementById('admin-threats-list').innerHTML = 'Failed to load threats';
+            }
         }
 
         // Modify fetch calls to include auth header

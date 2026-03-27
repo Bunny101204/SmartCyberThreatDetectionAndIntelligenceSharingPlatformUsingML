@@ -50,5 +50,19 @@
         "node_type": "SOC",
         "node_name": "SOC-1",
         "password": "manogna"
+    },
+    "TestOrg-ADMIN-1": {
+        "organization": "TestOrg",
+        "node_type": "SOC",
+        "node_name": "ADMIN-1",
+        "password": "test123",
+        "role": "admin"
+    },
+    "TestOrg2-EP-1": {
+        "organization": "TestOrg2",
+        "node_type": "ENDPOINT",
+        "node_name": "EP-1",
+        "password": "test123",
+        "role": "admin"
     }
 }
