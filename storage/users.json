@@ -1,4 +1,54 @@
 {
-  "ORG-A": ["SOC-1", "ENDPOINT-1", "SENSOR-1"],
-  "ORG-B": ["SOC-1", "ENDPOINT-1", "SENSOR-1"]
+    "ORG-A": [
+        "SOC-1",
+        "ENDPOINT-1",
+        "SENSOR-1"
+    ],
+    "ORG-B": [
+        "SOC-1",
+        "ENDPOINT-1",
+        "SENSOR-1"
+    ],
+    "CyberCorp-SOC-1": {
+        "organization": "CyberCorp",
+        "node_type": "SOC",
+        "node_name": "SOC-1",
+        "password": "pass123"
+    },
+    "bunnys-SOC 1": {
+        "organization": "bunnys",
+        "node_type": "SOC",
+        "node_name": "SOC 1",
+        "password": "bunny12"
+    },
+    "adarshs-SOC-1": {
+        "organization": "adarshs",
+        "node_type": "SOC",
+        "node_name": "SOC-1",
+        "password": "adarsh"
+    },
+    "bunnys-SOC-1": {
+        "organization": "bunnys",
+        "node_type": "SOC",
+        "node_name": "SOC-1",
+        "password": "bunny12"
+    },
+    "OrgA-A1": {
+        "organization": "OrgA",
+        "node_type": "SOC",
+        "node_name": "A1",
+        "password": "p"
+    },
+    "OrgB-B1": {
+        "organization": "OrgB",
+        "node_type": "SOC",
+        "node_name": "B1",
+        "password": "p"
+    },
+    "manognas-SOC-1": {
+        "organization": "manognas",
+        "node_type": "SOC",
+        "node_name": "SOC-1",
+        "password": "manogna"
+    }
 }

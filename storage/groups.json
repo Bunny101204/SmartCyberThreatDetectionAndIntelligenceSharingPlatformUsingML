@@ -150,5 +150,64 @@
         ],
         "pending_requests": [],
         "shared_threats": []
+    },
+    "expGroup1": {
+        "members": [
+            "bunnys-SOC-1",
+            "adarshs-SOC-1",
+            "manognas-SOC-1"
+        ],
+        "pending_requests": [],
+        "shared_threats": [
+            {
+                "src_ip": "192.168.0.112",
+                "dst_ip": "10.0.0.134",
+                "prediction": "Attack",
+                "attack_type": "attack",
+                "id": "7afec1ed-e212-45dc-9856-2aa6b169c53c",
+                "node_id": "adarshs-SOC-1"
+            },
+            {
+                "src_ip": "192.168.0.204",
+                "dst_ip": "10.0.0.211",
+                "prediction": "Attack",
+                "attack_type": "attack",
+                "id": "82b14d6c-cdb0-4e51-81c6-bda9b0268057",
+                "node_id": "adarshs-SOC-1"
+            },
+            {
+                "src_ip": "192.168.0.1",
+                "dst_ip": "10.0.0.195",
+                "prediction": "Attack",
+                "attack_type": "attack",
+                "id": "64d645e8-9f3d-44ca-a54a-5a95dc595ad4",
+                "node_id": "adarshs-SOC-1"
+            },
+            {
+                "src_ip": "192.168.0.18",
+                "dst_ip": "10.0.0.111",
+                "prediction": "Attack",
+                "attack_type": "attack",
+                "id": "134638ad-0826-4630-b514-a68427384df2",
+                "node_id": "adarshs-SOC-1"
+            },
+            {
+                "src_ip": "192.168.0.163",
+                "dst_ip": "10.0.0.243",
+                "prediction": "Attack",
+                "attack_type": "attack",
+                "id": "6db0334a-c0d2-4928-9b76-7a0c7ce850a4",
+                "node_id": "adarshs-SOC-1"
+            }
+        ]
+    },
+    "Group1": {
+        "members": [
+            "OrgA-A1"
+        ],
+        "pending_requests": [
+            "OrgB-B1"
+        ],
+        "shared_threats": []
     }
 }

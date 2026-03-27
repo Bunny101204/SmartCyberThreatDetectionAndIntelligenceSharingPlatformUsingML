@@ -31,18 +31,11 @@
             <div class="header">Login</div>
             <div class="form-group">
                 <label>Organization:</label>
-                <select id="login-org">
-                    <option value="ORG-A">ORG-A</option>
-                    <option value="ORG-B">ORG-B</option>
-                </select>
+                <input type="text" id="login-org" placeholder="e.g., CyberCorp">
             </div>
             <div class="form-group">
-                <label>Node Type:</label>
-                <select id="login-node-type">
-                    <option value="SOC-1">SOC-1</option>
-                    <option value="ENDPOINT-1">ENDPOINT-1</option>
-                    <option value="SENSOR-1">SENSOR-1</option>
-                </select>
+                <label>Node Name:</label>
+                <input type="text" id="login-node-name" placeholder="e.g., SOC-1">
             </div>
             <div class="form-group">
                 <label>Password:</label>
@@ -57,19 +50,16 @@
         <div class="panel">
             <div class="header">Register</div>
             <div class="form-group">
-                <label>Organization:</label>
-                <select id="reg-org">
-                    <option value="ORG-A">ORG-A</option>
-                    <option value="ORG-B">ORG-B</option>
-                </select>
+                <label>Organization Name:</label>
+                <input type="text" id="reg-org" placeholder="e.g., CyberCorp">
             </div>
             <div class="form-group">
                 <label>Node Type:</label>
-                <select id="reg-node-type">
-                    <option value="SOC-1">SOC-1</option>
-                    <option value="ENDPOINT-1">ENDPOINT-1</option>
-                    <option value="SENSOR-1">SENSOR-1</option>
-                </select>
+                <input type="text" id="reg-node-type" placeholder="e.g., SOC">
+            </div>
+            <div class="form-group">
+                <label>Node Name:</label>
+                <input type="text" id="reg-node-name" placeholder="e.g., SOC-1">
             </div>
             <div class="form-group">
                 <label>Password:</label>
@@ -82,21 +72,14 @@
 
     <div id="main-app" style="display: none;">
         <div class="panel">
-            <div class="header">Node Configuration</div>
+            <div class="header">Node Configuration - Logged in as: <span id="logged-user"></span></div>
             <div class="form-group">
                 <label>Organization:</label>
-                <select id="org">
-                    <option value="ORG-A">ORG-A</option>
-                    <option value="ORG-B">ORG-B</option>
-                </select>
+                <input type="text" id="org" readonly>
             </div>
             <div class="form-group">
                 <label>Node Type:</label>
-                <select id="node-type">
-                    <option value="SOC-1">SOC-1</option>
-                    <option value="ENDPOINT-1">ENDPOINT-1</option>
-                    <option value="SENSOR-1">SENSOR-1</option>
-                </select>
+                <input type="text" id="node-type" readonly>
             </div>
             <button onclick="startDetection()">Start Monitoring</button>
             <button onclick="stopDetection()">Stop</button>
@@ -128,6 +111,16 @@
                 <button onclick="requestJoin()">Request Join</button>
             </div>
             <div id="groups-list"></div>
+        </div>
+
+        <div class="panel">
+            <div class="header">Notifications</div>
+            <div id="notification-panel">
+                <div><strong>Pending Join Requests</strong></div>
+                <div id="join-notifications">No pending join requests.</div>
+                <div style="margin-top:12px"><strong>Shared Threat Alerts</strong></div>
+                <div id="shared-alerts">No shared threat alerts.</div>
+            </div>
         </div>
 
         <div class="panel">
@@ -195,15 +188,43 @@
         }
 
         async function loadOrgInfo() {
-            const org = document.getElementById('org').value;
+            const orgInfo = document.getElementById('org-info');
+            orgInfo.innerHTML = '<div class="card">Loading organization info...</div>';
             try {
                 const users = await fetch('/users').then(r => r.json());
-                const info = document.getElementById('org-info');
-                const nodes = users[org] || [];
-                info.innerHTML = `<strong>${org}</strong><br>Nodes: ${nodes.join(', ')}`;
+                const user = users[currentNodeId];
+
+                if (!user) {
+                    orgInfo.innerHTML = '<div class="card">No organization information available for current user.</div>';
+                    return;
+                }
+
+                document.getElementById('org').value = user.organization;
+                document.getElementById('node-type').value = user.node_type;
+                document.getElementById('logged-user').textContent = currentNodeId;
+
+                const groups = await fetch('/groups').then(r => r.json());
+
+                const sameOrgNodes = Object.values(users).filter(u => u.organization === user.organization);
+                const memberGroups = Object.entries(groups)
+                    .filter(([name, g]) => g.members.includes(currentNodeId))
+                    .map(([name, g]) => name);
+
+                let html = `
+                    <div class="card"><strong>Organization:</strong> ${user.organization}</div>
+                    <div class="card"><strong>Node Name:</strong> ${user.node_name}</div>
+                    <div class="card"><strong>Node Type:</strong> ${user.node_type}</div>
+                    <div class="card"><strong>Registered Nodes in Org:</strong> ${sameOrgNodes.length}</div>
+                    <div class="card"><strong>Your Group Memberships:</strong> ${memberGroups.length ? memberGroups.join(', ') : 'None'}</div>
+                    <div class="card"><strong>Pending Join Requests:</strong> ${Object.entries(groups)
+                        .filter(([, g]) => g.pending_requests.includes(currentNodeId)).length}
+                    </div>
+                `;
+
+                orgInfo.innerHTML = html;
             } catch (e) {
                 console.error('Failed to load org info', e);
-                document.getElementById('org-info').innerHTML = 'Failed to load org info';
+                orgInfo.innerHTML = '<div class="card">Failed to load organization info.</div>';
             }
         }
 
@@ -247,69 +268,149 @@
         async function loadGroups() {
             const groups = await fetch('/groups').then(r => r.json());
             const div = document.getElementById('groups-list');
+            const joinDiv = document.getElementById('join-notifications');
             div.innerHTML = '';
+
+            const pendingGroups = [];
+
             for (const [name, data] of Object.entries(groups)) {
                 let html = `<div class="card">Group: ${name}<br>Members: ${data.members.join(', ')}<br>Pending: ${data.pending_requests.join(', ')}`;
+
                 if (data.members.includes(currentNodeId)) {
-                    // Show approve buttons for pending requests
+                    if (data.pending_requests.length) {
+                        pendingGroups.push({ name, requests: data.pending_requests });
+                    }
                     data.pending_requests.forEach(req => {
                         html += `<br><button onclick="approveRequest('${name}', '${req}')">Approve ${req}</button>`;
                     });
                 }
+
                 html += `</div>`;
                 div.innerHTML += html;
+
                 if (data.members.includes(currentNodeId)) {
                     currentGroup = name;
                     loadSharedFeed(name);
                 }
             }
+
+            if (!pendingGroups.length) {
+                joinDiv.innerHTML = 'No pending join requests.';
+            } else {
+                joinDiv.innerHTML = pendingGroups.map(g =>
+                    `<div class="card">Group ${g.name}: ${g.requests.join(', ')}</div>`
+                ).join('');
+            }
+
+            loadSharedThreatNotifications();
         }
 
         async function loadSharedFeed(groupName) {
-            const feed = await fetch(`/group/${groupName}`).then(r => r.json());
-            const div = document.getElementById('shared-feed');
-            div.innerHTML = '';
-            feed.forEach(item => {
-                div.innerHTML += `<div class="card threat attack">🔴 IOC: ${item.ip} | ${item.threat_type} | ${item.severity} | From ${item.source_org}</div>`;
-            });
+            try {
+                const response = await fetch('/shared-threats');
+                if (!response.ok) return;
+                const feed = await response.json();
+                const div = document.getElementById('shared-feed');
+                div.innerHTML = '';
+                if (!Array.isArray(feed)) {
+                    console.error("Invalid shared feed response", feed);
+                    return;
+                }
+                feed.forEach(item => {
+                    div.innerHTML += `<div class="card threat attack">🔴 IOC: ${item.ip} | ${item.threat_type} | ${item.severity} | From ${item.source_org}</div>`;
+                });
+            } catch (e) {
+                console.error('Failed to load shared feed', e);
+            }
+        }
+
+        async function loadSharedThreatNotifications() {
+            try {
+                const response = await fetch('/shared-threats');
+                if (!response.ok) return;
+                const feed = await response.json();
+                const div = document.getElementById('shared-alerts');
+                div.innerHTML = '';
+                if (!Array.isArray(feed)) {
+                    console.error('Invalid shared alerts response', feed);
+                    div.innerHTML = 'Invalid shared threat data.';
+                    return;
+                }
+                if (!feed.length) {
+                    div.innerHTML = 'No new shared threat alerts.';
+                    return;
+                }
+                feed.forEach(item => {
+                    div.innerHTML += `<div class="card">🔔 ${item.threat_type} from ${item.source_org} (${item.ip})</div>`;
+                });
+            } catch (e) {
+                console.error('Failed to load shared threat notifications', e);
+            }
         }
 
         async function loadFirewallUpdates() {
-            const updates = await fetch('/firewall-updates').then(r => r.json());
-            const div = document.getElementById('firewall-updates');
-            div.innerHTML = '';
-            updates.forEach(update => {
-                div.innerHTML += `<div class="card threat attack">🚫 Blocked: ${update.ip} | ${update.reason} | ${update.node_id}</div>`;
-            });
+            try {
+                const response = await fetch('/firewall-updates');
+                if (!response.ok) return;
+                const updates = await response.json();
+                const div = document.getElementById('firewall-updates');
+                div.innerHTML = '';
+                if (!Array.isArray(updates)) {
+                    console.error("Invalid response", updates);
+                    return;
+                }
+                updates.forEach(update => {
+                    div.innerHTML += `<div class="card threat attack">🚫 Blocked: ${update.ip} | ${update.reason} | ${update.node_id}</div>`;
+                });
+            } catch (e) {
+                console.error('Failed to load firewall updates', e);
+            }
         }
 
-        // Auto-refresh shared feed and firewall updates
+        // Auto-refresh groups, shared feed, shared threat notifications, and firewall updates
         setInterval(() => {
+            loadGroups();
             if (currentGroup) {
                 loadSharedFeed(currentGroup);
             }
+            loadSharedThreatNotifications();
             loadFirewallUpdates();
         }, 2000);
 
         async function login() {
-            const org = document.getElementById('login-org').value;
-            const nodeType = document.getElementById('login-node-type').value;
+            const org = document.getElementById('login-org').value.trim();
+            const nodeName = document.getElementById('login-node-name').value.trim();
             const password = document.getElementById('login-password').value;
+
+            if (!org || !nodeName) {
+                alert('Organization and Node Name are required');
+                return;
+            }
+
+            if (!password) {
+                alert('Password is required');
+                return;
+            }
+
+            const nodeId = `${org}-${nodeName}`;
+
             try {
                 const response = await fetch('/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ org, node_type: nodeType, password })
+                    body: JSON.stringify({ organization: org, node_name: nodeName, node_id: nodeId, password })
                 });
+
                 if (response.ok) {
                     const data = await response.json();
-                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('token', 'dummy'); // dummy token
                     localStorage.setItem('node_id', data.node_id);
-                    token = data.token;
+                    token = 'dummy';
                     currentNodeId = data.node_id;
                     document.getElementById('login-section').style.display = 'none';
                     document.getElementById('register-section').style.display = 'none';
                     document.getElementById('main-app').style.display = 'block';
+                    document.getElementById('logged-user').textContent = data.node_id;
                     loadOrgInfo();
                     loadGroups();
                     loadFirewallUpdates();
@@ -318,29 +419,48 @@
                     alert(`Login failed: ${error.detail}`);
                 }
             } catch (e) {
-                alert('Login failed');
+                console.error('Login error:', e);
+                alert('Login failed: Unable to connect to server');
             }
         }
 
         async function register() {
-            const org = document.getElementById('reg-org').value;
-            const nodeType = document.getElementById('reg-node-type').value;
+            const org = document.getElementById('reg-org').value.trim();
+            const nodeType = document.getElementById('reg-node-type').value.trim();
+            const nodeName = document.getElementById('reg-node-name').value.trim();
             const password = document.getElementById('reg-password').value;
+            
+            if (!org || !nodeType || !nodeName) {
+                alert('All fields are required');
+                return;
+            }
+            
+            if (!password) {
+                alert('Password is required');
+                return;
+            }
+            
             try {
                 const response = await fetch('/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ org, node_type: nodeType, password })
+                    body: JSON.stringify({ organization: org, node_type: nodeType, node_name: nodeName, password })
                 });
+                
                 if (response.ok) {
-                    alert('Registered successfully. Please login.');
+                    alert('Registered successfully! Please login.');
+                    document.getElementById('reg-org').value = '';
+                    document.getElementById('reg-node-type').value = '';
+                    document.getElementById('reg-node-name').value = '';
+                    document.getElementById('reg-password').value = '';
                     showLogin();
                 } else {
                     const error = await response.json();
                     alert(`Registration failed: ${error.detail}`);
                 }
             } catch (e) {
-                alert('Registration failed');
+                console.error('Registration error:', e);
+                alert('Registration failed: Unable to connect to server');
             }
         }
 
@@ -357,9 +477,10 @@
         // Modify fetch calls to include auth header
         const originalFetch = window.fetch;
         window.fetch = function(url, options = {}) {
-            if (token) {
+            if (token && currentNodeId) {
                 options.headers = options.headers || {};
                 options.headers['Authorization'] = `Bearer ${token}`;
+                options.headers['node-id'] = currentNodeId;
             }
             return originalFetch(url, options);
         };
