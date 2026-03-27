@@ -278,5 +278,93 @@
         "attack_type": "attack",
         "id": "6db0334a-c0d2-4928-9b76-7a0c7ce850a4",
         "node_id": "adarshs-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.242",
+        "dst_ip": "10.0.0.46",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "95fdc1e4-24c0-48f6-8d87-f4de0d8a411f",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.207",
+        "dst_ip": "10.0.0.204",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "b12b1a7d-251f-4b6f-9aff-693d47649c41",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.52",
+        "dst_ip": "10.0.0.42",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "2d3e3720-c6f3-4bf7-a574-532a43a2ff5a",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.233",
+        "dst_ip": "10.0.0.57",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "dba4427c-3157-48fd-be69-d69234372953",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.192",
+        "dst_ip": "10.0.0.90",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "e9a7da76-2817-4c98-8255-582e64e3561a",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.156",
+        "dst_ip": "10.0.0.12",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "d7be0fc6-9c41-4e9d-9d76-90f97fbd9188",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.233",
+        "dst_ip": "10.0.0.36",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "cb532e33-d672-4ddf-a280-adcf341253ba",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.153",
+        "dst_ip": "10.0.0.74",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "8532af07-d16e-4f06-98d0-3355f872cdd8",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.166",
+        "dst_ip": "10.0.0.172",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "5c57ffa2-5078-4e09-8add-0a2c267f3949",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.135",
+        "dst_ip": "10.0.0.137",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "ddc53dda-ab32-4e0a-b9fb-2ee7dea7d911",
+        "node_id": "manognas-SOC-1"
+    },
+    {
+        "src_ip": "192.168.0.151",
+        "dst_ip": "10.0.0.208",
+        "prediction": "Attack",
+        "attack_type": "attack",
+        "id": "ba24947b-dc15-4dd4-977d-a88001f27183",
+        "node_id": "manognas-SOC-1"
     }
 ]

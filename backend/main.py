@@ -362,15 +362,28 @@ def get_shared_threats(node_id: str = Header(None, alias="node-id")):
     shared = []
     for group_name, group_data in groups.items():
         if node_id in group_data["members"]:
-            shared.extend(group_data["shared_threats"])
+            for threat in group_data["shared_threats"]:
+                # Transform threat data to match frontend expectations
+                transformed = {
+                    "ip": threat.get("src_ip", "unknown"),
+                    "threat_type": threat.get("attack_type", "unknown"),
+                    "source_org": threat.get("node_id", "unknown").split("-")[0] if "-" in threat.get("node_id", "") else "unknown",
+                    "severity": "High" if threat.get("prediction") == "Attack" else "Low",
+                    "id": threat.get("id"),
+                    "src_ip": threat.get("src_ip"),
+                    "dst_ip": threat.get("dst_ip"),
+                    "attack_type": threat.get("attack_type"),
+                    "prediction": threat.get("prediction")
+                }
+                shared.append(transformed)
     return shared
 
 @app.get("/firewall-updates")
-def get_firewall_updates():
+def get_firewall_updates(node_id: str = Header(None, alias="node-id")):
     return load_firewall()
 
 @app.get("/users")
-def get_users():
+def get_users(node_id: str = Header(None, alias="node-id")):
     return load_users()
 
 # Placeholder for MISP integration
